@@ -1,39 +1,36 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace cryptopals
 {
     public class Crypto
     {
         /// <summary>
-        /// Converts a hexadecimal string to its base64 representation
+        /// Converts a hexadecimal string to base64
         /// </summary>
-        /// <param name="hexString">The hexadecimal string to conver to base64</param>
+        /// <param name="hexString">The hexadecimal string to convert</param>
         /// <returns>The base64 representation of the hexadecimal string</returns>
         public static string HexStringToBase64(string hexString)
         {
-            // base64 encode our byte array and return it
+            // convert the hex string to raw bytes
+            // then convert into a base64 encoded string
             return Convert.ToBase64String(HexStringToByteArray(hexString));
         }
 
         /// <summary>
-        /// Takes a hexadecimal string and returns its corresponding byte array
+        /// Converts a hexadecimal string to a byte array
         /// </summary>
-        /// <param name="hexString">A hexadecimal string</param>
-        /// <returns>The hexadecimal string as byte array</returns>
+        /// <param name="hexString">The hexadecimal string to convert</param>
+        /// <returns>The hexadecimal string as a byte array</returns>
         private static byte[] HexStringToByteArray(string hexString)
         {
-            // divide by two since we're going from an array of hex digits (1 nibble)
-            // to an array of bytes (2 nibbles)
+            // the length of the byte array is going to be half the length of the hex string 
+            // since a hex digit is equivalent to half a byte. (hex digit = 4 bits, byte = 8 bits)
             var byteArrayLength = hexString.Length / 2;
             var bytes = new byte[byteArrayLength];
             for (var i = 0; i < byteArrayLength; i++)
             {
-                // split the contents into separate hex-number pairs
-                // then convert each into their byte value
+                // since 2 hex digits are equivalent to 1 byte we need to work on them in pairs
+                // then convert each pair into their corresponding binary values (represented as 8 bit unsigned integers)
                 bytes[i] = Convert.ToByte(hexString.Substring(i * 2, 2), 16);
             }
 
