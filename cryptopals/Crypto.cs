@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.NetworkInformation;
 using System.Threading;
 
@@ -7,18 +9,6 @@ namespace cryptopals
     public class Crypto
     {
         /// <summary>
-        /// Converts a hexadecimal string to base64
-        /// </summary>
-        /// <param name="hexString">The hexadecimal string to convert</param>
-        /// <returns>The base64 representation of the hexadecimal string</returns>
-        public static string HexStringToBase64(string hexString)
-        {
-            // convert the hex string to raw bytes
-            // then convert into a base64 encoded string
-            return Convert.ToBase64String(HexStringToByteArray(hexString));
-        }
-
-        /// <summary>
         /// Takes two equal-length buffers and producers their xor combination
         /// </summary>
         /// <param name="firstBuffer">The first buffer</param>
@@ -26,12 +16,13 @@ namespace cryptopals
         /// <returns>The XOR combination of the two buffers</returns>
         public static byte[] FixedXor(byte[] firstBuffer, byte[] secondBuffer)
         {
-            // if the buffers aren't of equal length then that's a problem
+            // if the buffers aren't of equal length
             if (firstBuffer.Length != secondBuffer.Length)
+                // then that's a problem
                 throw new ArgumentException("Buffers must be of equal length");
 
             // instantiate a new byte array to hold the XOR output
-            byte[] output = new byte[firstBuffer.Length];
+            var output = new byte[firstBuffer.Length];
 
             // iterate over the buffers and perform an XOR operation against each bit
             for (var i = 0; i < firstBuffer.Length; i++)
@@ -43,34 +34,64 @@ namespace cryptopals
         }
 
         /// <summary>
-        /// Converts a hexadecimal string to a byte array
+        /// Scores a given IEnumerable of byte arrays based on english character frequency
         /// </summary>
-        /// <param name="hexString">The hexadecimal string to convert</param>
-        /// <returns>The hexadecimal string as a byte array</returns>
-        public static byte[] HexStringToByteArray(string hexString)
+        /// <param name="input">The IEnumerable of byte arrays to be scored</param>
+        /// <returns>The byte array with the highest score </returns>
+        public static byte[] ScoreMessages(IEnumerable<byte[]> input)
         {
-            // the length of the byte array is going to be half the length of the hex string 
-            // since a hex digit is equivalent to half a byte. (hex digit = 4 bits, byte = 8 bits)
-            var byteArrayLength = hexString.Length / 2;
-            var bytes = new byte[byteArrayLength];
-            for (var i = 0; i < byteArrayLength; i++)
-            {
-                // since 2 hex digits are equivalent to 1 byte we need to work on them in pairs
-                // then convert each pair into their corresponding binary values (represented as 8 bit unsigned integers)
-                bytes[i] = Convert.ToByte(hexString.Substring(i * 2, 2), 16);
-            }
-
-            return bytes;
+            // compare the score of each index until we find the highest score
+            // and thus most likely the correct message
+            return input.Aggregate((agg, next) =>
+                ScoreEnglishFrequency(next) > ScoreEnglishFrequency(agg) ? next : agg);
         }
 
         /// <summary>
-        /// Converts a byte array to a hexadecimal string
+        /// Scores a given IReadOnlyCollection of bytes based on english character frequency
         /// </summary>
-        /// <param name="byteArray">The byte array to convert</param>
-        /// <returns>The byte array as a hexadecimal string</returns>
-        public static string ByteArrayToHexString(byte[] byteArray)
+        /// <param name="input">The IReadOnlyCollection of bytes to be scored</param>
+        /// <returns>The score</returns>
+        private static int ScoreEnglishFrequency(IReadOnlyCollection<byte> input)
         {
-            return BitConverter.ToString(byteArray).Replace("-", "").ToLower();
+            return input.Select<byte, int>(i =>
+            {
+                Helpers.EnglishCharacterFreqencies.TryGetValue((char)i, out var score);
+                return score;
+            }).Sum() / input.Count;
+        }
+
+        /// <summary>
+        /// Takes a byte array that has been XOR'd against a single character
+        /// performs an XOR operation against every unicode-16 character aganist it
+        /// </summary>
+        /// <param name="input">The byte array that has been XOR'd against a single character</param>
+        /// <returns>A dictionary of possibile decrypted messages to be scored</returns>
+        public static Dictionary<char, byte[]> BuildXorCipherDictionary(byte[] input)
+        {
+            var xorCipherDictionary = new Dictionary<char, byte[]>();
+            for (var c = ' '; c <= '~'; c++)
+            {
+                xorCipherDictionary.Add(c, SingleByteXorCipher(c, input));
+            }
+
+            return xorCipherDictionary;
+        }
+
+        /// <summary>
+        /// Takes a byte array and performs an XOR operation against every index
+        /// </summary>
+        /// <param name="key">The character we are going to perform the XOR operation against</param>
+        /// <param name="input">The byte array we are going to perform the XOR operation against</param>
+        /// <returns>The XOR combination of the byte array and the key</returns>
+        public static byte[] SingleByteXorCipher(char key, byte[] input)
+        {
+            var output = new byte[input.Length];
+            for (var i = 0; i < input.Length; i++)
+            {
+                output[i] = (byte) (input[i] ^ key);
+            }
+
+            return output;
         }
     }
 }
